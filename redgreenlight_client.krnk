@@ -3,7 +3,18 @@
 # 
 # Add custom actions here
 
+# ======================================================
+# KNOBS
+num DURATION_SOUNDFILE = 3000; # change if the soundfile length is changed
+# ======================================================
+
+
 # Runs when the game starts
+bool redlight = false;
+num tdurationlight = 0;
+bool inrange = false;
+bool inredgreenroom = true;
+
 public action start() {
 
 }
@@ -15,7 +26,19 @@ public action update(num delta) {
 
 # Add rendering logic in here
 public action render(num delta) {
+    obj size = GAME.OVERLAY.getSize();
+	num xmid = ((num) size.width)/2;
+	num ymid = ((num) size.height)/2;
 
+    
+    if (inrange) {
+        if (redlight)     {
+            GAME.OVERLAY.drawText("RED LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#FF0000", 1);
+        } else {
+            GAME.OVERLAY.drawText("GREEN LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#00FF00", 1);
+        }
+    }
+    
 }
 
 # Player spawns in
@@ -66,4 +89,21 @@ public action onDIVClicked(str id) {
 # Client receives network message
 public action onNetworkMessage(str id, obj data) {
     GAME.log(id);
+    if ((id == "lightstatus") && (inredgreenroom == true)) {
+        redlight = (bool) data.redlight;
+        tdurationlight = (num) data.tdurationlight;
+        if (!redlight) {
+            obj sound = GAME.SOUND.play2D(31321,1,((DURATION_SOUNDFILE+100)/tdurationlight),false); # play sound. hardcoded sound to 3seconds or less   
+        }
+    } else if (id == "inrange") {
+        inrange = true;
+        inredgreenroom = true;
+    } else if (id == "outrange") {
+        inrange = false;
+    } else if (id == "shoot") {
+        obj sound = GAME.SOUND.play2D(31325,1,1,false); 
+    } else if (id == "leftredgreenroom") {
+        GAME.log("left redgreenroom!");
+        inredgreenroom = false;
+    }
 }

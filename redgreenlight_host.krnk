@@ -5,17 +5,24 @@
 
 # ======================================================
 # KNOBS
-num VEL_NOTMOVING = 0;
-num MS_FIRERATE = 100;
-num GUNDAMAGE = 20;
+num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
+num MS_FIRERATE = 1000; # how fast to shoot
+num GUNDAMAGE = 200; # how much damage per shot
 
+# wait periods
+num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
+num MS_MINGREENLIGHT = 1500;   num MS_MAXGREENLIGHT = 3000;
+num DURATION_SOUNDFILE = 3000; # change if the soundfile length is changed
 # ======================================================
-bool redlight = false;
 
-str[] playerMarked = str[];
+bool redlight = false;
+obj[] ais = obj[];
+obj doll = {};
+
+str[] markedList = str[];
 bool action playerisMarked(str username) {
-    for (num i = 0; i < lengthOf playerMarked; i++) {
-        if (playerMarked[i] == username) {
+    for (num i = 0; i < lengthOf markedList; i++) {
+        if (markedList[i] == username) {
             return true;
         }
     }
@@ -23,14 +30,50 @@ bool action playerisMarked(str username) {
 }
 
 bool action removeMark(str username) {
-    for (num i = 0; i < lengthOf playerMarked; i++) {
-        if (playerMarked[i] == username) {
-            remove playerMarked[i];
+    for (num i = 0; i < lengthOf markedList; i++) {
+        if (markedList[i] == username) {
+            remove markedList[i];
             return true;
         }
     }
     return false;
 }
+
+bool action addMarks(obj[] plrList) {
+    bool marksAdded = false;
+    for (num i=0; i < lengthOf plrList; i++) {
+        obj player = plrList[i];
+        
+        if (playerinRange((str)player.id) && ((num)player.health > 0) && !playerisMarked((str)player.username) && 
+        (((num)player.velocity.x > VEL_NOTMOVING) || ((num)player.velocity.y > VEL_NOTMOVING) || ((num)player.velocity.z > VEL_NOTMOVING))) {
+            addTo markedList (str)player.username;
+            GAME.NETWORK.send("marked",{},(str)player.id);
+            marksAdded = true;
+        }
+    }
+    return marksAdded;
+
+}
+
+str action findNearestPlayer(obj pos, str[] markedList, obj[] plrList){
+    # find player in plrList
+    num nearest = 9000;
+    str plrid = "";
+    for(num i=0; i< lengthOf markedList; i++) {
+        for(num j=0; j < lengthOf plrList; j++) {
+            if (markedList[i] == (str)plrList[j].username) {
+                num dist = Math.abs(UTILS.getDist3D((num)pos.x,(num)pos.y,(num)pos.z,(num)plrList[j].position.x,(num)plrList[j].position.y,(num)plrList[j].position.z));
+                if (dist < nearest) {
+                    nearest = dist;
+                    plrid = (str)plrList[j].id;
+                }
+            }
+        }
+    }
+    return plrid;
+}
+
+
 
 str[] RangeList = str[];
 bool action playerinRange(str playerID) {
@@ -51,13 +94,61 @@ bool action outRange(str playerID) {
     return false;
 }
 
+obj[] action findAIbyName(obj[] ailist, str ainame) {
+    obj[] aimatchname = obj[];
+    for (num i=0; i<lengthOf ailist; i++) {
+        if ((str)ailist[i].displayName == ainame) {
+            addTo aimatchname (obj) ailist[i];
+        }
+    }
+    return aimatchname;
+}
+
+
+bool gamehappening = false;
+bool gamestarted = false;
+num tdurationlight = 0;
+num tlastlight = 0;
+
+
+action updatelight(num tnow) {
+    if (((tnow - tlastlight) > tdurationlight) && (lengthOf markedList == 0)) {
+        # GAME.log("updating light");
+        tlastlight = tnow;
+        if (gamestarted) {
+            redlight = redlight ? false : true;
+        } else {
+            redlight = false;
+            gamestarted = true;
+        }
+        
+        if (redlight) { # redlight
+            doll.playAnim("Back");    
+            tdurationlight = UTILS.randInt(MS_MINREDLIGHT,MS_MAXREDLIGHT);
+        } else { # greenlight
+            tdurationlight = UTILS.randInt(MS_MINGREENLIGHT,MS_MAXGREENLIGHT);
+            doll.playAnim("Front"); # play anim
+        }
+        GAME.NETWORK.broadcast("lightstatus",{redlight:redlight, tdurationlight:tdurationlight});
+        
+    }
+}
+
+
 # Runs when the game starts
 public action start() {
-	redlight = false;
-    playerMarked = str[];
+	gamehappening = false;
+    redlight = false;
+    markedList = str[];
     RangeList = str[];
-
+    ais = GAME.AI.list();
+    obj[] dolls = findAIbyName(ais, "doll");
+    if (!!dolls) {
+        doll = dolls[0];
+    } 
+    doll.playAnim("Front"); # play anim
 }
+
 
 
 # Runs every game tick
@@ -66,32 +157,31 @@ num tLastDamage = 0;
 
 public action update(num delta) {
 	tnow = GAME.TIME.now();
+    
+    if (gamehappening) {
+        updatelight(tnow);
+    }
 
-	if (((lengthOf playerMarked > 0) || redlight) && ((tnow - tLastDamage) > MS_FIRERATE)) {
-		tLastDamage = tnow;
+
+
+	if (((lengthOf markedList > 0) || redlight) && ((tnow - tLastDamage) > MS_FIRERATE)) {
+        tLastDamage = tnow;
 		obj[] plrList = GAME.PLAYERS.list();
-		for (num i=0; i < lengthOf plrList; i++) {
-			obj player = plrList[i];
-            if (playerinRange((str)player.id)) {
-                if (((num)player.health > 0) && !playerisMarked((str)player.username) && 
-                (((num)player.velocity.x > VEL_NOTMOVING) || ((num)player.velocity.y > VEL_NOTMOVING) || ((num)player.velocity.z > VEL_NOTMOVING))) {
-                addTo playerMarked (str)player.username;
-                GAME.NETWORK.send("marked",{},(str)player.id);
-            }
-            if (playerisMarked((str)player.username)) {
-                if ((num) player.health <= 0) { # player dead
-                    removeMark((str)player.username);
-                } else { # shoot player
-                    player.health = (num) player.health - GUNDAMAGE;
-                } 
-			}
-            }
+        
+        addMarks(plrList); # add new marks each loop
 
-			
-		}	
-	} 
-    if (!redlight && (lengthOf playerMarked == 0)) { # reset player marked list
-        playerMarked = str[];
+        str plrid = findNearestPlayer((obj)doll.position,markedList, plrList);
+        if (!!plrid) {
+            obj player = GAME.PLAYERS.findByID(plrid);
+            player.health = (num) player.health - GUNDAMAGE;
+            GAME.NETWORK.broadcast("shoot", {});
+            if ((num) player.health <= 0) { # player dead, remove mark
+                removeMark((str)player.username);
+            }	
+        } 
+    }
+    if (!redlight && (lengthOf markedList == 0)) { # reset player marked list
+        markedList = str[];
     }
 }
 
@@ -110,7 +200,6 @@ public action onCustomTrigger(str playerID, str customParam) {
 	GAME.NETWORK.broadcast(customParam, {});
     if (customParam == "redlight") {
 		redlight = true;
-        
 	}
 	else if (customParam == "greenlight") {
 		redlight = false;
@@ -118,10 +207,14 @@ public action onCustomTrigger(str playerID, str customParam) {
     else if (customParam == "inrange") {
         if (!playerinRange(playerID)) {
             addTo RangeList playerID;
+            gamehappening = true;
         }
     }
     else if (customParam == "outrange") {
         outRange(playerID);
+    }
+    else if (customParam == "leftredgreenroom") {
+        GAME.NETWORK.send("leftredgreenroom",{},playerID);
     }
 }
 
