@@ -1,0 +1,142 @@
+# Server Script runs only on Hosted server & not in test mode
+# KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
+# 
+# Add custom actions here
+
+# ======================================================
+# KNOBS
+num VEL_NOTMOVING = 0;
+num MS_FIRERATE = 100;
+num GUNDAMAGE = 20;
+
+# ======================================================
+bool redlight = false;
+
+str[] playerMarked = str[];
+bool action playerisMarked(str username) {
+    for (num i = 0; i < lengthOf playerMarked; i++) {
+        if (playerMarked[i] == username) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool action removeMark(str username) {
+    for (num i = 0; i < lengthOf playerMarked; i++) {
+        if (playerMarked[i] == username) {
+            remove playerMarked[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+str[] RangeList = str[];
+bool action playerinRange(str playerID) {
+    for (num i = 0; i < lengthOf RangeList; i++) {
+        if (RangeList[i] == playerID) {
+            return true;
+        }
+    }
+    return false;
+}
+bool action outRange(str playerID) {
+    for (num i = 0; i < lengthOf RangeList; i++) {
+        if (RangeList[i] == playerID) {
+            remove RangeList[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+# Runs when the game starts
+public action start() {
+	redlight = false;
+    playerMarked = str[];
+    RangeList = str[];
+
+}
+
+
+# Runs every game tick
+num tnow = 0;
+num tLastDamage = 0;
+
+public action update(num delta) {
+	tnow = GAME.TIME.now();
+
+	if (((lengthOf playerMarked > 0) || redlight) && ((tnow - tLastDamage) > MS_FIRERATE)) {
+		tLastDamage = tnow;
+		obj[] plrList = GAME.PLAYERS.list();
+		for (num i=0; i < lengthOf plrList; i++) {
+			obj player = plrList[i];
+            if (playerinRange((str)player.id)) {
+                if (((num)player.health > 0) && !playerisMarked((str)player.username) && 
+                (((num)player.velocity.x > VEL_NOTMOVING) || ((num)player.velocity.y > VEL_NOTMOVING) || ((num)player.velocity.z > VEL_NOTMOVING))) {
+                addTo playerMarked (str)player.username;
+                GAME.NETWORK.send("marked",{},(str)player.id);
+            }
+            if (playerisMarked((str)player.username)) {
+                if ((num) player.health <= 0) { # player dead
+                    removeMark((str)player.username);
+                } else { # shoot player
+                    player.health = (num) player.health - GUNDAMAGE;
+                } 
+			}
+            }
+
+			
+		}	
+	} 
+    if (!redlight && (lengthOf playerMarked == 0)) { # reset player marked list
+        playerMarked = str[];
+    }
+}
+
+# Player spawns in
+public action onPlayerSpawn(str id) {
+    outRange(id);
+}
+
+# Player update
+public action onPlayerUpdate(str id, num delta, static obj inputs) {
+
+}
+
+# Called from Custom Trigger Action
+public action onCustomTrigger(str playerID, str customParam) {
+	GAME.NETWORK.broadcast(customParam, {});
+    if (customParam == "redlight") {
+		redlight = true;
+        
+	}
+	else if (customParam == "greenlight") {
+		redlight = false;
+	}
+    else if (customParam == "inrange") {
+        if (!playerinRange(playerID)) {
+            addTo RangeList playerID;
+        }
+    }
+    else if (customParam == "outrange") {
+        outRange(playerID);
+    }
+}
+
+# Server receives network message
+public action onNetworkMessage(str id, obj data, str playerID) {
+
+}
+
+# Server receives chat message
+public action onChatMessage(str msg, str playerID) {
+
+}
+
+# When a player leaves the server
+public action onPlayerLeave(str playerID) {
+    outRange(playerID);
+    removeMark(playerID);
+}
