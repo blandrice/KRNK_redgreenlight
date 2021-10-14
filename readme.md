@@ -21,11 +21,12 @@ If a player moves during redlight phase, they will get fired at until they are d
 2. customParam messages are caps sensitive ("redlight" works, "ReDlIgHt" does not work)
 	
 ## V1.1 (if you want :D then I will work on this)  
+- players will NOT be allowed to 🛑↪️ ROTATE or even 🛑⬇️ CROUCH
 - Shows ❌ RED MARK underneath you if you are marked during redlight
 	- will 🌘DARKEN the sky when u are about to be shot
 - 🔫 Gun will take time shooting the NEAREST marked players (start shooting the nearest player, after nearest marked player dies, start shooting next nearest player)
 	- ⏱️❎ green light phase will only start when all marked players are dead
 - 🤖 robot head will PAUSE AND POINT LASER 😱 if it detects movement, & wait to DETECT MORE MOVEMENT 😣 before shooting
-	- bullets will 🗡️PIERCE players and damage others behind them (requires raycasting from KS, or my already made custom collision code 😏)
-	- players can 😈 HIDE behind other players and continue moving (also requires raycasting from KS, or my already made custom collision code 😏)
+	- bullets will 🗡️PIERCE players and damage others behind them (requires raycasting (WIP) from KS, or my already made custom collision code 😏)
+	- players can 😈 HIDE behind other players and continue moving (also requires raycasting (WIP) from KS, or my already made custom collision code 😏)
 - 🎬 CUTSCENE to start round 
