@@ -11,9 +11,9 @@ If a player moves during redlight phase, they will get fired at until they are d
 - redlight starts by sending customParam message "redlight"
 - redlight ends (greenlight starts) by sending customParam message "greenlight"
 - to fine-tune, change values of VEL_NOTMOVING, MS_FIRERATE, GUNDAMAGE in the host.krnk file.
-	VEL_NOTMOVING: how fast can a player move before we start shooting it (pixels/ms)
-	MS_FIRERATE: how fast to shoot
-	GUNDAMAGE: how much damage per shot
+	- VEL_NOTMOVING: how fast can a player move before we start shooting it (pixels/ms)
+	- MS_FIRERATE: how fast to shoot
+	- GUNDAMAGE: how much damage per shot
 	
 ### Tips:
 1. player always spawns out of range of firing
