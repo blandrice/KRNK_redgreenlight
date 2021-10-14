@@ -1,8 +1,9 @@
 
 # Red Light / Green Light in KrunkScript
+https://streamable.com/dlyfa5
 
 ![video](2021-10-13_23-03-07.gif)
-https://streamable.com/dlyfa5
+
 
 	
 ## V1.0 - redlight/greenlight functionality. 
