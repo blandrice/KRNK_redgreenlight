@@ -120,6 +120,7 @@ action updatelight(num tnow) {
         } else {
             redlight = false;
             gamestarted = true;
+            tlastlight = tnow;
         }
         
         if (redlight) { # redlight
@@ -162,18 +163,16 @@ public action update(num delta) {
         updatelight(tnow);
     }
 
+    obj[] plrList = GAME.PLAYERS.list();
+    if (redlight) {addMarks(plrList);} # add new marks each loop
 
-
-	if (((lengthOf markedList > 0) || redlight) && ((tnow - tLastDamage) > MS_FIRERATE)) {
-        tLastDamage = tnow;
-		obj[] plrList = GAME.PLAYERS.list();
-        
-        addMarks(plrList); # add new marks each loop
-
+    # shooting people
+	if ((lengthOf markedList > 0) && ((tnow - tLastDamage) > MS_FIRERATE)) { # check marked list is not yet empty (and fire rate)
         str plrid = findNearestPlayer((obj)doll.position,markedList, plrList);
         if (!!plrid) {
             obj player = GAME.PLAYERS.findByID(plrid);
             player.health = (num) player.health - GUNDAMAGE;
+            tLastDamage = tnow;    
             GAME.NETWORK.broadcast("shoot", {});
             if ((num) player.health <= 0) { # player dead, remove mark
                 removeMark((str)player.username);
@@ -208,6 +207,7 @@ public action onCustomTrigger(str playerID, str customParam) {
         if (!playerinRange(playerID)) {
             addTo RangeList playerID;
             gamehappening = true;
+            redlight = false;
         }
     }
     else if (customParam == "outrange") {
