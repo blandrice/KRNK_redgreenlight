@@ -4,23 +4,66 @@
 # Add custom actions here
 
 # ======================================================
-# KNOBS
-num DURATION_SOUNDFILE = 3000; # change if the soundfile length is changed
+# CLIENT KNOBS
+num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
+num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
 # ======================================================
 
 
 # Runs when the game starts
 bool redlight = false;
 num tdurationlight = 0;
+num clocktime = 0;
 bool inrange = false;
 bool inredgreenroom = true;
+obj[] assetList  = obj[];
 
-public action start() {
-
+action updateDeathAnim(num tnow, num delta) {
+    for (num i=0; i < lengthOf assetList; i++) {
+        obj asset = (obj) assetList[i].asset;
+        if ((tnow - (num)assetList[i].tspawned) > (num)assetList[i].tdurationanim) {
+            asset.delete();
+            remove  assetList[i];
+        } else if ((tnow - (num)assetList[i].tspawned) < MSDURATION_DROP) {
+            (num) asset.position.x += -1/100 * delta;
+            asset.position.y = (num) assetList[i].ystartpos + 7*Math.sin((tnow - (num) assetList[i].tspawned)/MSDURATION_DROP * Math.PI);
+        }
+    }
 }
+
+str action timetoStr(num mstime) {
+    num min = Math.floor(mstime / 1000 / 60);
+    num sec = Math.floor(mstime / 1000);
+    num ms_remain = Math.round((mstime % 1000)/100);
+
+    min = min >= 0 ? min : 0;
+    sec = sec >= 0 ? sec : 0;
+    ms_remain = ms_remain >= 0 ? ms_remain : 0;
+
+    str minstr = (min >= 10 ? toStr min : "0" + toStr min);
+    str secstr = (sec >= 10 ? toStr sec : "0" + toStr sec);
+    
+
+    return minstr + ":" + secstr + "." + toStr ms_remain;
+}
+public action start() {
+    clocktime = 0;
+
+    for (num i=0; i < lengthOf assetList; i++) {
+        assetList[i].delete();
+        remove assetList[i];
+    }
+}
+
 
 # Runs every game tick
 public action update(num delta) {
+    if (lengthOf assetList > 0) {
+        updateDeathAnim(GAME.TIME.now(), delta);
+    }
+    if (clocktime > 0) {
+        clocktime -= delta;
+    }
 
 }
 
@@ -38,6 +81,10 @@ public action render(num delta) {
             GAME.OVERLAY.drawText("GREEN LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#00FF00", 1);
         }
     }
+
+    GAME.OVERLAY.drawRect((num)size.width*7/16, (num) size.height*1/32, (num)size.width/8,(num)size.height/16, "left", "#000000", 0.3);
+    
+    GAME.OVERLAY.drawText(timetoStr(clocktime), xmid, (num) size.height*9/128, 0, 32*(num)size.height / 1080, "center", "#FFFFFF", 1);
     
 }
 
@@ -93,7 +140,7 @@ public action onNetworkMessage(str id, obj data) {
         redlight = (bool) data.redlight;
         tdurationlight = (num) data.tdurationlight;
         if (!redlight) {
-            obj sound = GAME.SOUND.play2D(31321,1,((DURATION_SOUNDFILE+100)/tdurationlight),false); # play sound. hardcoded sound to 3seconds or less   
+            obj sound = GAME.SOUND.play2D(31321,1,((MS_DURATION_SONG+100)/tdurationlight),false); # play sound. hardcoded sound to 3seconds or less   
         }
     } else if (id == "inrange") {
         inrange = true;
@@ -105,5 +152,14 @@ public action onNetworkMessage(str id, obj data) {
     } else if (id == "leftredgreenroom") {
         GAME.log("left redgreenroom!");
         inredgreenroom = false;
+    } else if (id == "dead") {
+        obj model = GAME.SCENE.addAsset("31207g",(num)data.x,(num)data.y,(num)data.z,8);
+        model.rotation.x = -90;
+        model.rotation.z = 90;
+        model.playAnim("Jump");
+        obj asset = {asset:model, tspawned: GAME.TIME.now(), tdurationanim: MS_DURATIONDEATH,ystartpos:(num)model.position.y};
+        addTo assetList asset;
+    } else if (id == "clocktime") {
+        clocktime = (num) data.clocktime;
     }
 }

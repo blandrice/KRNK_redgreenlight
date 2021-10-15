@@ -15,15 +15,26 @@ If a player moves during redlight phase, they will get fired at until they are d
 
 	```cs
 	# ======================================================
-	# KNOBS
+	# HOST KNOBS
 	num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
 	num MS_FIRERATE = 1000; # how fast to shoot
 	num GUNDAMAGE = 200; # how much damage per shot
 
-	# wait periods
+
+
+	# Stage 1: Red/Green light
 	num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
 	num MS_MINGREENLIGHT = 1500;   num MS_MAXGREENLIGHT = 3000;
-	num DURATION_SOUNDFILE = 3000; # change if the soundfile length is changed
+	num MS_CLOCKTIMER = 50000; 
+	num MS_INTERVAL_CLOCKSYNC = 5000;
+
+	# Stage 2: honeycomb
+	obj honeycombstart = {x: -173, y: 100, z: 132};
+
+	# ======================================================
+	# CLIENT KNOBS
+	num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
+	num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
 	# ======================================================
 	```
 	
@@ -38,6 +49,13 @@ If a player moves during redlight phase, they will get fired at until they are d
 - 🔊 Sounds for 🎵 Song and 💥Gunshot for death
 - ▶️ Trigger added for 🏃🏠leaving gameroom
 - 🔴 🟢 Simple Overlay indicating light is red/green 
+
+## V1.1.1
+- soldier shoot animation
+- timer countdown
+	- teleport to honeycomb after round end
+- death animation
+
 
 ## V1.2 (if you want :D then I will work on this)  
 
