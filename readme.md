@@ -2,33 +2,33 @@
 # Red Light / Green Light in KrunkScript
 
 ```cs
-	# ======================================================
-	# HOST KNOBS
-	num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
-	num MS_FIRERATE = 1000; # how fast to shoot
-	num GUNDAMAGE = 200; # how much damage per shot
+# ======================================================
+# HOST KNOBS
+num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
+num MS_FIRERATE = 1000; # how fast to shoot
+num GUNDAMAGE = 200; # how much damage per shot
 
 
 
-	# Stage 1: Red/Green light
-	num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
-	num MS_MINGREENLIGHT = 1500;   num MS_MAXGREENLIGHT = 3000;
-	num MS_CLOCKTIMER = 50000; 
-	num MS_INTERVAL_CLOCKSYNC = 5000;
+# Stage 1: Red/Green light
+num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
+num MS_MINGREENLIGHT = 1500;   num MS_MAXGREENLIGHT = 3000;
+num MS_CLOCKTIMER = 50000; 
+num MS_INTERVAL_CLOCKSYNC = 5000;
 
-	# Stage 2: honeycomb
-	obj[] honeycombstart = obj[ # randomly teleports to one of the positions below
-		{x: -173, y: 100, z: 132}, # position 1
-		{x: -173, y: 200, z: 132}, # position 2
-		{x: -173, y: 300, z: 132} # position 3
-	];
+# Stage 2: honeycomb
+obj[] honeycombstart = obj[ # randomly teleports to one of the positions below
+	{x: -173, y: 100, z: 132}, # position 1
+	{x: -173, y: 200, z: 132}, # position 2
+	{x: -173, y: 300, z: 132} # position 3
+];
 
-	# ======================================================
-	# CLIENT KNOBS
-	num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
-	num MS_DURATION_BOTSCAN = 1000; # change if the soundfile length is changed
-	num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
-	# ======================================================
+# ======================================================
+# CLIENT KNOBS
+num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
+num MS_DURATION_BOTSCAN = 1000; # change if the soundfile length is changed
+num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
+# ======================================================
 ```
 
 # Road Map
