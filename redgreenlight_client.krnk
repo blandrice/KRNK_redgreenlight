@@ -6,6 +6,7 @@
 # ======================================================
 # CLIENT KNOBS
 num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
+num MS_DURATION_BOTSCAN = 1000; # change if the soundfile length is changed
 num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
 # ======================================================
 
@@ -17,6 +18,7 @@ num clocktime = 0;
 bool inrange = false;
 bool inredgreenroom = true;
 obj[] assetList  = obj[];
+str winner = "";
 
 action updateDeathAnim(num tnow, num delta) {
     for (num i=0; i < lengthOf assetList; i++) {
@@ -48,6 +50,7 @@ str action timetoStr(num mstime) {
 }
 public action start() {
     clocktime = 0;
+    winner = "";
 
     for (num i=0; i < lengthOf assetList; i++) {
         assetList[i].delete();
@@ -68,8 +71,14 @@ public action update(num delta) {
 }
 
 # Add rendering logic in here
+num height = 0;
 public action render(num delta) {
     obj size = GAME.OVERLAY.getSize();
+    if ((num) size.height != height) {
+        height = (num) size.height;
+        GAME.log(toStr height);
+    }
+    
 	num xmid = ((num) size.width)/2;
 	num ymid = ((num) size.height)/2;
 
@@ -82,10 +91,16 @@ public action render(num delta) {
         }
     }
 
+    # timer
     GAME.OVERLAY.drawRect((num)size.width*7/16, (num) size.height*1/32, (num)size.width/8,(num)size.height/16, "left", "#000000", 0.3);
-    
     GAME.OVERLAY.drawText(timetoStr(clocktime), xmid, (num) size.height*9/128, 0, 32*(num)size.height / 1080, "center", "#FFFFFF", 1);
     
+    # winner display message
+    if (!!winner) {
+        GAME.OVERLAY.drawRect((num) size.width*5/16, (num) size.height*5/16, (num)size.width*3/8,(num)size.height*5/16, "left", "#000000", 0.3);
+        GAME.OVERLAY.drawText("WINNER: ", xmid, (num) size.height*7/16, 0, 72*(num)size.height/1080*(num)size.width/1920, "center", "#FFFFFF", 1);
+        GAME.OVERLAY.drawText(winner, xmid, (num) size.height*9/16, 0, 100*(num)size.height/1080*(num)size.width/1920, "center", "#e9417f", 1);
+    }
 }
 
 # Player spawns in
@@ -140,7 +155,9 @@ public action onNetworkMessage(str id, obj data) {
         redlight = (bool) data.redlight;
         tdurationlight = (num) data.tdurationlight;
         if (!redlight) {
-            obj sound = GAME.SOUND.play2D(31321,1,((MS_DURATION_SONG+100)/tdurationlight),false); # play sound. hardcoded sound to 3seconds or less   
+            obj sound = GAME.SOUND.play2D(31321,1,((MS_DURATION_SONG+100)/tdurationlight),false); # hardcoded singing to 3seconds
+        } else{
+            obj sound = GAME.SOUND.play2D(31409,1,1,false); # hardcoded botscan to 1second
         }
     } else if (id == "inrange") {
         inrange = true;
@@ -161,5 +178,8 @@ public action onNetworkMessage(str id, obj data) {
         addTo assetList asset;
     } else if (id == "clocktime") {
         clocktime = (num) data.clocktime;
+    } else if (id == "winner") { 
+        winner = (str) data.winner;
+        GAME.SOUND.play2D(31410,1,1,false); # winning sound
     }
 }

@@ -18,7 +18,11 @@ num MS_CLOCKTIMER = 50000;
 num MS_INTERVAL_CLOCKSYNC = 5000;
 
 # Stage 2: honeycomb
-obj honeycombstart = {x: -173, y: 100, z: 132};
+obj[] honeycombstart = obj[ # randomly teleports to one of the positions below
+    {x: -173, y: 100, z: 132}, # position 1
+    {x: -173, y: 200, z: 132}, # position 2
+    {x: -173, y: 300, z: 132} # position 3
+];
 
 # ======================================================
 
@@ -173,9 +177,10 @@ action updateRound(num delta) {
                 player.health = 0;
                 GAME.NETWORK.broadcast("dead", {player:player.id, x:player.position.x, y:player.position.y, z:player.position.z});
             } else {
-                player.position.x = (num)honeycombstart.x;
-                player.position.y = (num)honeycombstart.y;
-                player.position.z = (num)honeycombstart.z;
+                obj startpos = honeycombstart[UTILS.randInt(0,lengthOf honeycombstart - 1)];
+                player.position.x = (num)startpos.x;
+                player.position.y = (num)startpos.y;
+                player.position.z = (num)startpos.z;
 
             }
         }
@@ -190,6 +195,8 @@ public action start() {
     redlight = false;
     markedList = str[];
     RangeList = str[];
+    winList = str[];
+    clocktime = 0;
     ais = GAME.AI.list();
     obj[] dolls = findAIbyName(ais, "doll");
     if (!!dolls) {
@@ -271,6 +278,8 @@ public action onCustomTrigger(str playerID, str customParam) {
     }
     else if (customParam == "leftredgreenroom") {
         GAME.NETWORK.send("leftredgreenroom",{},playerID);
+    } else if (customParam == "winner") {
+        GAME.NETWORK.send("winner",{winner:GAME.PLAYERS.findByID(playerID).username},playerID);
     }
 }
 
