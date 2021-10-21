@@ -32,7 +32,7 @@ num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
 ```
 
 # Road Map
-1. Red/Green light
+1. Red/Green light (additional features)
 	- 🤖 robot head will PAUSE AND POINT LASER 😱 if it detects movement, & wait to DETECT MORE MOVEMENT 😣 before shooting
 	- bullets will 🗡️PIERCE players and damage others behind them (requires raycasting (WIP) from KS, or my already made custom collision code 😏)
 	- players can 😈 HIDE behind other players and continue moving (also requires raycasting (WIP) from KS, or my already made custom collision code 😏)
@@ -42,13 +42,22 @@ num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
 3. tug-of-war stage
 	- clicker / left right key tapper in teams 
 4. marbles
-	- guessing game in pairs
+	- collect 20 marbles (spawn randomly)
 5.  glass stepping stones
 	- triggers for stepping (randomized left/right)
 	- turn off/flicker environment lighting halfway through
 6. Final Round - squid game
-	- melee game w/ knockback
-7. 🎬 CUTSCENES to start rounds w/ explanations
+	- melee last man standing
+
+## V2.0 - First Release
+- Marbles Game
+- squid game (teleport to squid zone)
+- Winning messages
+- fog setting for last game 
+- many more sounds, background music
+- images for win/red/greenlight
+- updated death system to accomodate spectators
+tbc.. 
 
 ## V1.2 
 - doll now plays sound when turning head

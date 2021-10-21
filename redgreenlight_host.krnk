@@ -5,26 +5,415 @@
 
 # ======================================================
 # HOST KNOBS
-num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
-num MS_FIRERATE = 1000; # how fast to shoot
-num GUNDAMAGE = 200; # how much damage per shot
-
-
 
 # Stage 1: Red/Green light
 num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
-num MS_MINGREENLIGHT = 1500;   num MS_MAXGREENLIGHT = 3000;
-num MS_CLOCKTIMER = 50000; 
+num MS_MINGREENLIGHT = 2000;   num MS_MAXGREENLIGHT = 3000;
+num MS_CLOCKTIMER_LIGHT = 60000; 
+# num MS_CLOCKTIMER_LIGHT = 5000; 
 num MS_INTERVAL_CLOCKSYNC = 5000;
+
+num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
+num MS_FIRERATE = 1000; # how fast to shoot
+num MS_RELAXEDSHOOT = 500; # some buffer for red light to show before shooting
+num GUNDAMAGE = 200; # how much damage per shot
 
 # Stage 2: honeycomb
 obj[] honeycombstart = obj[ # randomly teleports to one of the positions below
-    {x: -173, y: 100, z: 132}, # position 1
-    {x: -173, y: 200, z: 132}, # position 2
-    {x: -173, y: 300, z: 132} # position 3
+    {x: -1034, y: 73, z: 742}, # position 1
+    {x: -831.5, y: 73, z: 948.5}, # position 2
+    {x: -622, y: 73, z: 742} # position 3
+];
+obj honeycombWinArea = {x:-830,y:101,z:753};
+
+num MS_CLOCKTIMER_HONEYCOMB = 60000;
+
+# Stage 3: Marbles
+obj[] marblestart = obj[ # randomly teleports to one of the positions below
+    {x: -1796, y: 1011, z: 2280} # position 1
+];
+num MS_CLOCKTIMER_MARBLES = 60000;
+# num MS_INTERVALMARBLEDROP = 3000;
+num MS_INTERVALMARBLEDROP = 1000;
+num NUM_DROPS = 8;
+num CHANCE_DROP = 0.2;
+num CHANCEBOOST_MAX = 0.8;
+num MAXLOBBYSIZE = 40;
+num MAX_ITEMS_INGAME = 40;
+
+num CHANCE_STARTDROP = 1;
+
+# Stage 4: Bridge 
+obj[] bridgestart = obj[ # randomly teleports to one of the positions below
+    {x: -488.86, y: 244, z: 2343} # position 1
+    # {x: -1796, y: 1011, z: 2280} # position 1
+];
+num MS_CLOCKTIMER_BRIDGE = 60000;
+# str CLR_BRIDGEFOG = "#8D9AA0"; num DIST_FOG = 200;
+# str CLR_OG_BRIDGEFOG = "#8D9AA0"; num DIST_OG_FOG = 2000;
+
+# Stage 5: squid game
+obj[] squidstart = obj[ # randomly teleports to one of the positions below
+    
+    {x: -443, y: 115, z: 96},
+    {x: -594, y: 115, z: 96},
+    {x: -594, y: 115, z: -30},
+    {x: -443, y: 115, z: -30},
+    {x: -717, y: 115, z: 28}
+];
+num MS_CLOCKTIMER_SQUID = 60000;
+
+
+# Win area
+obj[] win_area = obj[ # randomly teleports to one of the positions below
+    {x: -568, y: 86, z: -94} # position 1
 ];
 
+
 # ======================================================
+
+num tnow = 0;
+
+# ======================================================
+# Host Item Library
+# ======================================================
+
+num tLastItemClear = 0;
+num tLastItemDropBroadcast = 0;
+num tLastBroadcastPickups = 0;
+
+num MS_INTERVAL_ITEMCLEAR = 100;
+num MS_INTERVAL_DROPBROADCAST = 500;
+num MS_INTERVAL_PICKUPBROADCAST = 200;
+
+
+obj[] items = obj[];
+obj[] dropItems = obj[];
+num[] itemDeleteList = num[];
+obj[] pickuplist = obj[];
+num newitemid = 0;
+obj[] droplocations = obj[
+    {x: -1724, y: 1029,z: 2061.5},
+    {x: -1892.5, y: 1050,z: 2399},
+    {x: -1702, y: 1032,z: 2518},
+    {x: -1838, y: 1022,z: 2478},
+    {x: -1904, y: 1005,z: 2280},
+    {x: -1865, y: 1005,z: 2181},
+    {x: -1882, y: 1005,z: 2017},
+    {x: -1763, y: 999,z: 2029},
+    {x: -1819, y: 1005,z: 2051},
+    {x: -1739, y: 1005,z: 2165},
+    {x: -1837, y: 1077,z: 2221},
+    {x: -1939, y: 1048,z: 2113.5},
+    {x: -1882, y: 1077,z: 2200},
+    {x: -1964, y: 1045,z: 2208},
+    {x: -1800, y: 1005,z: 2254},
+    {x: -1750, y: 1005,z: 2290},
+    {x: -1714, y: 1005,z: 2350},
+    {x: -1644, y: 1005,z: 2343},
+    {x: -1582.5, y: 1038,z: 2375},
+    {x: -1704, y: 1024,z: 2458},
+    {x: -1715, y: 1035,z: 2415},
+    {x: -1803, y: 1044,z: 2369},
+    {x: -2004, y: 999,z: 2159},
+    {x: -2011, y: 1005,z: 2355.5},
+    {x: -1621.5, y: 1028,z: 2084},
+    {x: -1996.5, y: 1031.5,z: 2066.5},
+    {x: -1580.5, y: 1028,z: 2225.5},
+    {x: -1877, y: 1029,z: 2035},
+    {x: -1823, y: 1005,z: 2152},
+    {x: -1602, y: 1005,z: 2411},
+    {x: -1697, y: 999,z: 2018},
+    {x: -1950, y: 1087,z: 2175},
+    {x: -1731, y: 1043,z: 2200},
+    {x: -1678, y: 1049,z: 2170},
+    {x: -1678, y: 1049,z: 2253},
+    {x: -1582.5, y: 1038,z: 2324},
+    {x: -1930, y: 1050,z: 2473},
+    {x: -1934, y: 1022,z: 2336},
+    {x: -1772, y: 1055,z: 2221}
+];
+
+action initItemLibrary() {
+    # item list
+    obj item1 = {name:"marble",assetid:0,tstartdrop: 0, x:0, y: 0, z:0, n: 1, type: "sprite", itemid:0};
+    addTo items item1;
+    items[0].sprite.delete();
+    remove items[0];
+    # item id
+    newitemid = 0;
+    itemDeleteList = num[];
+}	
+
+num action getnewitemid() {
+    if (newitemid < 32767) {
+        newitemid++;
+        return newitemid;
+    }
+    return 0;
+}
+
+action addItemDrop(str name, num tnow, num assetid, num n,num x,num y,num z) {
+    obj item = {name:name,assetid:assetid,tstartdrop:tnow,x:x,y:y,z:z,velx:UTILS.randFloat(-1, 1),velz:UTILS.randFloat(-1, 1),n:n,type:"sprite",itemid:getnewitemid()};
+    addTo items item;
+    addTo dropItems item;
+}
+
+action broadcastItemDrops() {
+    if (GAME.NETWORK.broadcast("drop",{items:dropItems})) {
+        dropItems = obj[];
+        GAME.log("items broadcasted");
+    } else {
+        GAME.log("failed item broadcasting");
+    }
+}
+
+obj action markItemForDeletion(num itemid) {
+    for (num i=0; i < lengthOf items; i++) {
+        if ((num)items[i].itemid == itemid){
+            str name = (str) items[i].name;
+            num cnt = (num) items[i].n;
+            remove items[i];
+            addTo itemDeleteList itemid;
+            return {name:name,cnt:cnt,itemid:itemid};
+        }
+	}
+    # GAME.log("item not found: " + toStr itemid);
+	return {itemid:itemid};
+}
+
+bool action broadcastItemDeletion() {
+    if (GAME.NETWORK.broadcast("deleteitems",{itemDeleteList:itemDeleteList})){
+        itemDeleteList = num[];
+        return true;
+    }
+    return false;
+}
+
+
+
+action addMarbles(num tnow){
+    # add drops
+    # chance drop that increases with # of players
+    num numplrs = lengthOf alivePlayers();
+
+    num ratio = (numplrs-2) / MAXLOBBYSIZE;
+    num chance_boost = Math.lerp(0,CHANCEBOOST_MAX,ratio);
+    
+
+    for (num i=0; i < NUM_DROPS; i++) {
+        num droploc = UTILS.randInt(0, lengthOf droplocations - 1);
+        if (UTILS.randFloat(0,1) <= (CHANCE_DROP+chance_boost)) {
+            obj loc = (obj) droplocations[droploc];
+            num[] clr_marbles = num[31668, 31669, 31672];
+            num points = UTILS.randInt(0,lengthOf clr_marbles) + 1;
+            num clr = clr_marbles[points-1];
+            addItemDrop("marble",tnow,clr,points,(num)loc.x,(num)loc.y,(num)loc.z);
+            # GAME.log("marble dropped at: " + toStr (num)loc.x+ " " +toStr (num)loc.y+ " " +toStr (num)loc.z);
+        }
+    }
+}
+
+action deleteAllMarbles() {
+    for (num i=0; i < lengthOf items; i++) {
+        remove items[i];
+    }
+    itemDeleteList = num[];
+    GAME.NETWORK.broadcast("delallmarb",{});
+}
+
+action updateItemLib(num delta) {
+     if ((lengthOf itemDeleteList > 0) && ((tnow - tLastItemClear) > MS_INTERVAL_ITEMCLEAR)) {
+        if (!broadcastItemDeletion()) {
+            GAME.log("error with item deletion!");
+        }
+		tLastItemClear = tnow;
+    }
+    if ((tnow - tLastItemDropBroadcast) > MS_INTERVAL_DROPBROADCAST) {
+        GAME.log("# items: " + toStr lengthOf dropItems);
+    }
+    if ((lengthOf dropItems > 0) &&((tnow - tLastItemDropBroadcast) > MS_INTERVAL_DROPBROADCAST)) {
+        broadcastItemDrops();
+        tLastItemDropBroadcast = tnow;
+    }
+
+
+    if ((lengthOf pickuplist > 0) && ((tnow - tLastBroadcastPickups) > MS_INTERVAL_PICKUPBROADCAST)) { 
+            GAME.NETWORK.broadcast("pickedup",{pickuplist:pickuplist});
+            pickuplist = obj[];
+            tLastBroadcastPickups=tnow;
+    }
+}
+
+
+
+bool action networkMessageItemLib(str id, obj data, str playerID) {
+    if (id == "requestpickup") {
+        num[] itempickuplist = (num[]) data.itempickuplist;
+        for (num i=0; i<lengthOf itempickuplist; i++) {
+            # obj successitem = markItemForDeletion((num)itempickuplist[i]);
+            addTo pickuplist {playerID: playerID, successitem:markItemForDeletion((num)itempickuplist[i])};
+            
+        }   
+        return true;
+    }
+    return false;
+}
+
+
+
+# ======================================================
+# Global Game Logic
+# ======================================================
+str gamehappening = "";
+str nextgame = "light";
+num clocktime = 0;
+num tlastclocksync = 0;
+str[] alivePlrIDList = str[];
+
+
+action initClock(num duration) {
+    clocktime = duration;
+    GAME.NETWORK.broadcast("clocktime",{clocktime:clocktime});
+}
+
+str[] action alivePlayers() {
+    obj[] plrList = playersinaction();
+    str[] alive = str[];
+    for (num i=0;i<lengthOf plrList; i++) {
+        if ((num) plrList[i].health > 0) {
+            addTo alive (str) plrList[i].playerID;
+        }
+    }
+    return alive;
+}
+
+str[] winList = str[];
+bool action playerHasPassed(str playerID) {
+    for (num i = 0; i < lengthOf winList; i++) {
+        if (winList[i] == playerID) {
+            return true;
+        }
+    }
+    return false;
+}
+
+str[] RangeList = str[];
+bool action playerinRange(str playerID) {
+    for (num i = 0; i < lengthOf RangeList; i++) {
+        if (RangeList[i] == playerID) {
+            return true;
+        }
+    }
+    return false;
+}
+bool action outRange(str playerID) {
+    for (num i = 0; i < lengthOf RangeList; i++) {
+        if (RangeList[i] == playerID) {
+            remove RangeList[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+obj[] action findAIbyName(obj[] ailist, str ainame) {
+    obj[] aimatchname = obj[];
+    for (num i=0; i<lengthOf ailist; i++) {
+        if ((str)ailist[i].displayName == ainame) {
+            addTo aimatchname (obj) ailist[i];
+        }
+    }
+    return aimatchname;
+}
+
+action updateClock(num delta) {
+    obj[] plrList = playersinaction();
+    # if (lengthOf alivePlayers() == 0) {return;}
+    # sync times
+    if ((tnow - tlastclocksync) > MS_INTERVAL_CLOCKSYNC) {
+        if (lengthOf plrList == lengthOf winList) {
+            clocktime = 0;
+        }
+        GAME.NETWORK.broadcast("clocktime",{clocktime:clocktime});
+        tlastclocksync = tnow;
+    }
+
+    # update clock
+    clocktime -= delta;
+    if (clocktime <= 0){
+        clocktime = 0;
+        # end clock round, kill players
+        bool playerkilled = false;
+        for (num i=0; i< lengthOf plrList; i++) {
+            obj player = plrList[i];
+            if (playerinRange((str)player.id) || !playerHasPassed((str)player.id)) {
+                player.health = 0;
+                GAME.NETWORK.broadcast("dead", {player:player.id, x:player.position.x, y:player.position.y, z:player.position.z});
+                playerkilled = true;
+            } 
+        }
+        if (playerkilled) {GAME.NETWORK.broadcast("shoot",{});}
+        winList = str[];
+    }
+}
+
+action teleportAllTo(obj[] startpositions) {
+    obj[] plrList = playersinaction();
+    for (num i=0; i< lengthOf plrList; i++) {
+        obj player = plrList[i];
+        if ((num) player.health > 0) {
+            obj startpos = startpositions[UTILS.randInt(0,lengthOf startpositions - 1)];
+            player.position.x = (num)startpos.x;
+            player.position.y = (num)startpos.y;
+            player.position.z = (num)startpos.z;
+
+            player.velocity.x = 0;
+            player.velocity.y = 0;
+            player.velocity.z = 0;
+        }
+    }
+}
+
+action addWinner(str playerID) {
+    bool alreadywon = false;
+    for (num i=0; i< lengthOf winList; i++) {
+        if (winList[i] == playerID) {
+			alreadywon = true;	
+		}
+    }
+    if (!alreadywon) {addTo winList playerID;}
+    GAME.NETWORK.send("winround",{text:"You passed!"},playerID);
+    
+}
+
+obj[] lastPlrList = obj[];
+action updateLastPlr() {
+    obj[] plrList = playersinaction();
+
+    # GAME.log(" players left: " + toStr lengthOf plrList);
+    if (lengthOf plrList <= 1) {
+        addWinner((str)lastPlrList[0].playerID); # shouldnt be here but whatevs
+        # endSquidGame();
+    } else {lastPlrList = (obj[])plrList;}
+}
+
+obj[] action playersinaction() {
+    obj[] plrlist = obj[];
+    for (num i = 0; i < lengthOf alivePlrIDList; i++) {
+        obj plr = GAME.PLAYERS.findByID(alivePlrIDList[i]);
+        addTo plrlist plr;
+    }
+    return plrlist;
+}
+
+# ======================================================
+# red light green light
+# ======================================================
+bool lightgamestarted = false;
+num tdurationlight = 0;
+num tlastlight = 0;
+num tLastDamage = 0;
 
 bool redlight = false;
 obj[] ais = obj[];
@@ -84,143 +473,52 @@ str action findNearestPlayer(obj pos, str[] markedList, obj[] plrList){
     return plrid;
 }
 
-str[] winList = str[];
-bool action playerHasPassed(str playerID) {
-    for (num i = 0; i < lengthOf winList; i++) {
-        if (winList[i] == playerID) {
-            return true;
-        }
-    }
-    return false;
-}
 
-str[] RangeList = str[];
-bool action playerinRange(str playerID) {
-    for (num i = 0; i < lengthOf RangeList; i++) {
-        if (RangeList[i] == playerID) {
-            return true;
-        }
-    }
-    return false;
-}
-bool action outRange(str playerID) {
-    for (num i = 0; i < lengthOf RangeList; i++) {
-        if (RangeList[i] == playerID) {
-            remove RangeList[i];
-            return true;
-        }
-    }
-    return false;
-}
-
-obj[] action findAIbyName(obj[] ailist, str ainame) {
-    obj[] aimatchname = obj[];
-    for (num i=0; i<lengthOf ailist; i++) {
-        if ((str)ailist[i].displayName == ainame) {
-            addTo aimatchname (obj) ailist[i];
-        }
-    }
-    return aimatchname;
-}
-
-
-bool gamehappening = false;
-bool gamestarted = false;
-num tdurationlight = 0;
-num tlastlight = 0;
-num clocktime = 0;
-num tlastclocksync = 0;
-
-
-action updatelight(num tnow) {
-    if (((tnow - tlastlight) > tdurationlight) && (lengthOf markedList == 0)) {
-        # GAME.log("updating light");
-        tlastlight = tnow;
-        if (gamestarted) {
-            redlight = redlight ? false : true;
+action changeLight() {
+    tlastlight = tnow;
+    # GAME.log("changing light");
+    if (!doll.displayName) {
+        ais = GAME.AI.list();
+        obj[] dolls = findAIbyName(ais, " ");
+        doll = dolls[0];
+        if (!!doll.displayName) {
+            GAME.log("refreshed doll");
         } else {
-            redlight = false;
-            gamestarted = true;
-            tlastlight = tnow;
-            clocktime = MS_CLOCKTIMER;
+            GAME.log("still cant find doll");
         }
         
-        if (redlight) { # redlight
+    }
+    if (redlight) { # redlight
+        if (!!doll.displayName){
             doll.playAnim("Back");    
-            tdurationlight = UTILS.randInt(MS_MINREDLIGHT,MS_MAXREDLIGHT);
-        } else { # greenlight
-            tdurationlight = UTILS.randInt(MS_MINGREENLIGHT,MS_MAXGREENLIGHT);
+        }
+        tdurationlight = UTILS.randInt(MS_MINREDLIGHT,MS_MAXREDLIGHT);
+    } else { # greenlight
+        if (!!doll.displayName){
             doll.playAnim("Front"); # play anim
         }
-        GAME.NETWORK.broadcast("lightstatus",{redlight:redlight, tdurationlight:tdurationlight});
-        
+        tdurationlight = UTILS.randInt(MS_MINGREENLIGHT,MS_MAXGREENLIGHT);
     }
+    GAME.NETWORK.broadcast("lightstatus",{redlight:redlight, tdurationlight:tdurationlight});
 }
 
-action updateRound(num delta) {
-    obj[] plrList = GAME.PLAYERS.list();
-    if ((tnow - tlastclocksync) > MS_INTERVAL_CLOCKSYNC) {
-        if (lengthOf plrList == lengthOf winList) {
-            clocktime = 0;
-        }
-        GAME.NETWORK.broadcast("clocktime",{clocktime:clocktime});
-        tlastclocksync = tnow;
-    }
-
-    if (clocktime < 0) {
-        clocktime = 0;
-        gamehappening = false;
-
-        for (num i=0; i< lengthOf plrList; i++) {
-            obj player = plrList[i];
-            if (playerinRange((str)player.id) || !playerHasPassed((str)player.id)) {
-                player.health = 0;
-                GAME.NETWORK.broadcast("dead", {player:player.id, x:player.position.x, y:player.position.y, z:player.position.z});
-            } else {
-                obj startpos = honeycombstart[UTILS.randInt(0,lengthOf honeycombstart - 1)];
-                player.position.x = (num)startpos.x;
-                player.position.y = (num)startpos.y;
-                player.position.z = (num)startpos.z;
-
-            }
-        }
-    } else {clocktime -= delta;}
-}
-
-
-# Runs when the game starts
-public action start() {
-	gamehappening = false;
-    gamestarted = false;
-    redlight = false;
-    markedList = str[];
-    RangeList = str[];
+action initLightGame() {
     winList = str[];
-    clocktime = 0;
-    ais = GAME.AI.list();
-    obj[] dolls = findAIbyName(ais, "doll");
-    if (!!dolls) {
-        doll = dolls[0];
-    } 
-    doll.playAnim("Front"); # play anim
+    lightgamestarted = true;
+    initClock(MS_CLOCKTIMER_LIGHT);
+    redlight = false;
+    tlastlight = tnow;
+    changeLight();
 }
 
-
-
-# Runs every game tick
-num tnow = 0;
-num tLastDamage = 0;
-
-public action update(num delta) {
-	tnow = GAME.TIME.now();
-    
-    if (gamehappening) {
-        updatelight(tnow);
-        updateRound(delta);
+action updateLightGame(num tnow) {
+    if (((tnow - tlastlight) > tdurationlight) && (lengthOf markedList == 0)) {
+        redlight = redlight ? false : true;
+        changeLight();
     }
 
-    obj[] plrList = GAME.PLAYERS.list();
-    if (redlight) {addMarks(plrList);} # add new marks each loop
+    obj[] plrList = playersinaction();
+    if ((redlight) && ((tnow - tlastlight) > MS_RELAXEDSHOOT)) {addMarks(plrList);} # add new marks each loop
 
     # shooting people
 	if ((lengthOf markedList > 0) && ((tnow - tLastDamage) > MS_FIRERATE)) { # check marked list is not yet empty (and fire rate)
@@ -230,25 +528,229 @@ public action update(num delta) {
             player.health = (num) player.health - GUNDAMAGE;
             tLastDamage = tnow;    
             GAME.NETWORK.broadcast("shoot",{});
-            obj[] soldiers = findAIbyName(ais, "soldier");
-            for (num i = 0; i < lengthOf soldiers; i++) {
-                obj soldier = (obj) soldiers[i];
-                soldier.playAnim("Shoot");
-            }
+            # obj[] soldiers = findAIbyName(ais, "soldier");
+            # for (num i = 0; i < lengthOf soldiers; i++) {
+            #     obj soldier = (obj) soldiers[i];
+            #     soldier.playAnim("Shoot");
+            # }
             if ((num) player.health <= 0) { # player dead, remove mark
                 removeMark((str)player.username);
                 GAME.NETWORK.broadcast("dead", {player:plrid, x:player.position.x, y:player.position.y, z:player.position.z});
             }	
         } 
     }
-    if (!redlight && (lengthOf markedList == 0)) { # reset player marked list
-        markedList = str[];
-    }
 }
+
+action endLightGame() {
+    lightgamestarted = false;
+    gamehappening = "honeycomb";
+}
+
+# ======================================================
+# Honeycomb
+# ======================================================
+bool honeycombgamestarted = false;
+
+action initHoneycombGame() {
+    honeycombgamestarted = true;
+    initClock(MS_CLOCKTIMER_HONEYCOMB);
+    teleportAllTo(honeycombstart);
+    winList = str[];
+}
+
+action updateHoneycombGame() {
+}
+
+action endHoneycombGame() {
+    honeycombgamestarted = false;
+    gamehappening = "marbles";
+}
+
+
+# ======================================================
+# Marbles Game
+# ======================================================
+
+
+bool marblesgamestarted = false;
+num tLastmarbleDrop = 0;
+action initMarblesGame() {
+    winList = str[];
+    marblesgamestarted = true;
+    initClock(MS_CLOCKTIMER_MARBLES);
+    teleportAllTo(marblestart);
+    tLastmarbleDrop = tnow;
+
+}
+
+action updateMarblesGame(num delta) {
+    updateItemLib(delta);
+    
+    if ((tnow - tLastmarbleDrop) > MS_INTERVALMARBLEDROP) {
+        if (lengthOf items <= MAX_ITEMS_INGAME){
+            addMarbles(tnow);
+        }
+        
+        tLastmarbleDrop = tnow;
+        
+    }
+
+}
+
+action endMarblesGame() {
+    deleteAllMarbles();
+    marblesgamestarted = false;
+    gamehappening = "bridge";
+}
+
+
+# ======================================================
+# Bridge Game
+# ======================================================
+
+bool bridgegamestarted = false;
+action initBridgeGame() {
+    winList = str[];
+    bridgegamestarted = true;
+    initClock(MS_CLOCKTIMER_BRIDGE);
+    teleportAllTo(bridgestart);
+
+}
+
+action updateBridgeGame() {
+}
+
+action endBridgeGame() {
+    bridgegamestarted = false;
+    gamehappening = "squidgame";
+}
+
+# ======================================================
+# Squid Game
+# ======================================================
+
+bool squidgamestarted = false;
+action initSquidGame() {
+    winList = str[];
+    squidgamestarted = true;
+    initClock(MS_CLOCKTIMER_SQUID);
+    teleportAllTo(squidstart);
+
+    GAME.NETWORK.broadcast("fog",{color: "#8D9AA0",distance:200});
+
+}
+
+action updateSquidGame() {
+
+}
+
+action endSquidGame() {
+    squidgamestarted = false;
+    gamehappening = "win";
+    GAME.NETWORK.broadcast("fog",{color: "#8D9AA0",distance:2000});
+}
+
+# ======================================================
+# Win Area
+# ======================================================
+bool winAreainitialized = false;
+action initWinArea() {
+    winAreainitialized = true;
+    teleportAllTo(win_area);
+}
+
+
+
+# ======================================================
+# START
+# ======================================================
+
+# Runs when the game starts
+public action start() {
+	tnow = GAME.TIME.now();
+    alivePlrIDList = str[];
+    initItemLibrary();
+
+    gamehappening = "";
+    nextgame = "light";
+    lightgamestarted = false;
+    honeycombgamestarted = false;
+    bridgegamestarted = false;
+    marblesgamestarted = false;
+    squidgamestarted = false;
+    redlight = false;
+    markedList = str[];
+    RangeList = str[];
+    winList = str[];
+    clocktime = 0;
+    ais = GAME.AI.list();
+    obj[] dolls = findAIbyName(ais, " ");
+    if (!!dolls) {
+        doll = dolls[0];
+    } 
+    doll.playAnim("Front"); # play anim
+    winAreainitialized = false;
+}
+
+str currentgame = "";
+# Runs every game tick
+public action update(num delta) {
+	tnow = GAME.TIME.now();
+    # GAME.log("total spawned players: " + toStr lengthOf playersinaction());
+    
+    if (currentgame != gamehappening) {
+        currentgame = gamehappening;
+        GAME.log("gamehappening: " + gamehappening);
+        GAME.NETWORK.broadcast("gamehappening",{gamehappening:gamehappening,text:"start: " + gamehappening});
+        GAME.log("Alive players: " + toStr lengthOf alivePlayers());
+        GAME.log("list of players: " + toStr lengthOf playersinaction());
+
+    }
+    
+    if ((!!gamehappening) && (clocktime > 0)) {updateClock(delta);}
+    if (gamehappening == "light") {
+        if (!lightgamestarted) {initLightGame();}
+        updateLightGame(tnow);
+        if (clocktime <= 0) {endLightGame();}
+
+    } else if (gamehappening == "honeycomb") {
+        if (!honeycombgamestarted) {initHoneycombGame();}
+        updateHoneycombGame();
+        if (clocktime <= 0) {endHoneycombGame();}
+    } else if (gamehappening == "marbles") {
+        if (!marblesgamestarted) {initMarblesGame();}
+        updateMarblesGame(delta);
+        if (clocktime <= 0) {endMarblesGame();}
+    } else if (gamehappening == "bridge") {
+        if (!bridgegamestarted) {initBridgeGame();}
+        updateBridgeGame();
+        if (clocktime <= 0) {endBridgeGame();}
+    } else if (gamehappening ==  "squidgame") {
+        if (!squidgamestarted) {initSquidGame();}
+        updateSquidGame();
+        # if (clocktime <= 0) {endSquidGame();}
+    } else if (gamehappening == "win") {
+        if (!winAreainitialized) {initWinArea();}
+    }
+
+    updateLastPlr();
+    
+}
+
 
 # Player spawns in
 public action onPlayerSpawn(str id) {
     outRange(id);
+    # addTo alivePlrIDList id;
+}
+
+# Player died
+public action onPlayerDeath(str id) {
+    for (num i = 0; i < lengthOf alivePlrIDList; i++) {
+        if (id == alivePlrIDList[i]) {
+            remove alivePlrIDList[i];
+        }
+    }
 }
 
 # Player update
@@ -259,32 +761,55 @@ public action onPlayerUpdate(str id, num delta, static obj inputs) {
 # Called from Custom Trigger Action
 public action onCustomTrigger(str playerID, str customParam) {
 	GAME.NETWORK.broadcast(customParam, {});
-    if (customParam == "redlight") {
-		redlight = true;
-	}
-	else if (customParam == "greenlight") {
-		redlight = false;
-	}
-    else if (customParam == "inrange") {
+    if (customParam == "inrange") {
         if (!playerinRange(playerID)) {
             addTo RangeList playerID;
-            gamehappening = true;
-            redlight = false;
+            gamehappening = "light";
         }
     }
     else if (customParam == "outrange") {
         outRange(playerID);
-        addTo winList playerID;
+        
+        addWinner(playerID);
     }
     else if (customParam == "leftredgreenroom") {
         GAME.NETWORK.send("leftredgreenroom",{},playerID);
+    } else if (customParam == "winhoneycomb") {
+        addWinner(playerID);
+        obj plr = GAME.PLAYERS.findByID(playerID);
+        
+        plr.position.x = (num)honeycombWinArea.x;
+        plr.position.y = (num)honeycombWinArea.y;
+        plr.position.z = (num)honeycombWinArea.z;
     } else if (customParam == "winner") {
-        GAME.NETWORK.send("winner",{winner:GAME.PLAYERS.findByID(playerID).username},playerID);
+        GAME.NETWORK.broadcast("winner",{winner:GAME.PLAYERS.findByID(playerID).username});
+    } else if (customParam == "addWinner") {
+        addWinner(playerID);
+    } else if (customParam == "gamehappening") {
+        gamehappening = "squidgame";
     }
+}
+
+
+action addtoAlivePlayerIDList(str ID) {
+    for (num i=0; i< lengthOf alivePlrIDList; i++) {
+        if (ID == alivePlrIDList[i]) {
+            return;
+        }
+    }
+    addTo alivePlrIDList ID;
+    return;
 }
 
 # Server receives network message
 public action onNetworkMessage(str id, obj data, str playerID) {
+    GAME.log("network message: " +  id);
+    if((id=="winmarbles") && (gamehappening == "marbles")) {
+        addWinner(playerID);
+    } else if (networkMessageItemLib(id, data, playerID)) {}
+    else if (id == "playerSpawned") {
+        addtoAlivePlayerIDList((str)data.ID);
+    }
 
 }
 
@@ -297,4 +822,41 @@ public action onChatMessage(str msg, str playerID) {
 public action onPlayerLeave(str playerID) {
     outRange(playerID);
     removeMark(playerID);
+
+    for (num i = 0; i < lengthOf alivePlrIDList; i++) {
+        if (playerID == alivePlrIDList[i]) {
+            remove alivePlrIDList[i];
+        }
+    }
+}
+
+str action lastPlayer(obj[] lastPlrList) {
+    obj[] players = playersinaction();
+    return (str)players[0].username;
+}
+
+# Runs when the round ends
+public action onGameEnd() {
+    # if ((gamehappening == "squidgame") || (gamehappening == "win")){
+    
+    # }
+    str winnername = lastPlayer(lastPlrList);
+    if (GAME.NETWORK.broadcast("winner",{winner:winnername})) {
+        # GAME.log("broadcasted win");
+    } else {
+        # GAME.log("failed broadcasted win");
+    }
+    gamehappening ="";
+    
+    clocktime = 0;
+    GAME.NETWORK.broadcast("clocktime",{clocktime:clocktime});
+    
+    deleteAllMarbles();
+    lightgamestarted = false;
+    honeycombgamestarted = false;
+    marblesgamestarted = false;
+    bridgegamestarted = false;    
+    squidgamestarted = false;    
+
+    GAME.log("onGameEndReached");
 }

@@ -7,18 +7,261 @@
 # CLIENT KNOBS
 num MS_DURATION_SONG = 3000; # change if the soundfile length is changed
 num MS_DURATION_BOTSCAN = 1000; # change if the soundfile length is changed
-num MSDURATION_DROP = 1000; num MS_DURATIONDEATH = 3000;
+num MSDURATION_RAGDOLL = 1000; num MS_DURATIONDEATH = 3000;
+num MS_DURATION_WINROUNDMSG = 3000;
+num MS_DURATION_ROUNDSTARTMSG = 5000;
 # ======================================================
+
+num tnow = 0;
+num fogtnow = 0;
+
+# ===============================================================
+# Items Library
+# ===============================================================
+
+num tLastItemRequestPickup = 0;
+num tLastHov = 0;
+num T_HOVANIM = 10; # update every 20 ms
+num HOVSPEED = 5000;
+num HOVHEIGHT = 5;
+num MS_INTERVAL_ITEMPICKUP = 100;
+obj sprite = {};
+obj item1 = {};
+obj[] items = obj[];
+obj you = {};
+obj music = {};
+obj fogsettings = {};
+
+# animations
+obj[] ldropanim = obj[];
+num MSDURATION_DROP = 500; 
+
+num itemcount = 0;
+
+# ===============================================================
+# Inventory
+# ===============================================================
+
+obj[] myitems = obj[{name:"marble",cnt:0}];
+
+action initInventoryLibrary() {
+    myitems = obj[{name:"marble",cnt:0}];
+}
+
+action updateInventory(obj[] myitems, obj newitem) {
+    for (num i=0; i<lengthOf myitems; i++) {
+        if ((str) myitems[i].name == (str)newitem.name) {
+            myitems[i].cnt = (num) myitems[i].cnt + (num)newitem.cnt;
+        }
+        return;
+    }
+    addTo myitems {name:(str)newitem.name,cnt:(str)newitem.cnt};
+    return;
+}
+
+# ===============================================================
+# Items in game
+# ===============================================================
+
+action initDropLibrary() {
+    sprite = GAME.SCENE.addSprite(11676,"#FFFFFF",0,5,0,10,{});
+	item1 = {tstartdrop: 0, y: 0,n: 1, hov: 0, sprite: sprite, itemid:""};
+    addTo items item1;
+    addTo ldropanim {tstartdrop: 0, posy: (num) sprite.position.y, velx: 0, velz: 0, sprite: sprite};
+    
+    items[0].sprite.delete();
+    
+    remove items[0];
+    remove ldropanim[0];
+}
+
+action deleteitems(num[] ids) {
+    for (num i=0; i < lengthOf ids; i++) {
+        for (num j=0; j<lengthOf items; j++) {
+            if ((num) ids[i] == (num) items[j].itemid) {
+                items[j].sprite.delete();
+                remove items[j];
+                remove ids[i];
+            }
+        }
+    }
+}
+
+num[] itempickuplist = num[];
+action requestItemPickup(){
+    GAME.NETWORK.send("requestpickup", {itempickuplist:itempickuplist});
+    itempickuplist = num[];
+}
+
+bool action checkItemRequestedPickup(num itemid) {
+    for (num i=0; i<lengthOf itempickuplist; i++) {
+        if (itempickuplist[i] == itemid){
+            return true;
+        }
+    }
+    return false;
+}
+
+action checkItemInRange(num delta) {
+    for (num i=0; i< lengthOf items; i++) {
+        if ((Math.abs((num) you.position.x - (num) items[i].sprite.position.x) < 5) && (Math.abs((num) you.position.y - (num) items[i].sprite.position.y) < 20) && (Math.abs((num) you.position.z - (num) items[i].sprite.position.z) < 5)) {
+            if (!checkItemRequestedPickup((num)items[i].itemid)) {
+                addTo itempickuplist (num)items[i].itemid;
+            }
+        }
+    }
+}
+
+bool action networkMessageDrop(str id, obj data) {
+    if (id == "drop")  {
+        obj[] dropItems = (obj[])data.items;
+        for (num i = 0; i < lengthOf dropItems; i++){
+            num assetid = (num) dropItems[i].assetid;
+            num itemid = (num) dropItems[i].itemid;
+            num velx = (num) dropItems[i].velx;
+            num velz = (num) dropItems[i].velz;
+
+            num x = (num) dropItems[i].x;
+            num y = (num) dropItems[i].y;
+            num z = (num) dropItems[i].z;
+            num n = (num) dropItems[i].n;
+
+            obj newsprite = GAME.SCENE.addSprite(assetid,"#FFFFFF",x,y+5,z,10,1,10,{opacity:0.9});
+            startDropAnim(tnow, newsprite, velx, velz);
+
+            addTo items {tstardrop: tnow, y: (num)newsprite.position.y, n:n, hov:0, sprite:newsprite, itemid:itemid};
+        }
+        return true;
+    }
+    return false;
+}
+
+num[] popsounds = num[31972,31971];
+bool action networkMessagePickup(str id, obj data) {
+    if (id == "pickedup") {
+        obj[] pickuplist = (obj[]) data.pickuplist;
+        for (num i=0; i< lengthOf pickuplist; i++) {
+            if ((str)pickuplist[i].playerID == (str) you.id) {
+                obj successitem = (obj) pickuplist[i].successitem;
+                if (!!successitem.name) {
+                    updateInventory(myitems, successitem);
+                    num popnum = UTILS.randInt(0,lengthOf popsounds-1);
+                    GAME.SOUND.play2D(popsounds[popnum],1,1,false); # clock ticking
+                } else {
+                    GAME.log("deleting this unfound item" + toStr (num) successitem.itemid);
+                    deleteitems(num[(num)successitem.itemid]);
+                }
+                
+            }
+        }  
+        return true;
+    } else if (id == "deleteitems") {
+        deleteitems((num[]) data.itemDeleteList);
+        return true;
+    } else if (id == "delallmarb") {
+        num[] allitemids = num[];
+        for (num i=0; i< lengthOf items; i++) {
+            items[i].sprite.delete();
+        }
+        items = obj[];
+        
+    }
+    return false;
+}
+
+# ===============================================================
+# Animations
+# ===============================================================
+
+action startDropAnim(num time, obj sprite, num velx, num velz) {
+    addTo ldropanim {tstartdrop: time, posy: (num) sprite.position.y, velx: velx, velz: velz, sprite: sprite};
+}
+
+action updateDropAnim(num delta) {
+    for (num i=0; i< lengthOf ldropanim; i++) {
+        if ((tnow - (num) ldropanim[i].tstartdrop) < MSDURATION_DROP) {
+            (num) ldropanim[i].sprite.position.x += (num) ldropanim[i].velx/100 * delta;
+            (num) ldropanim[i].sprite.position.z += (num) ldropanim[i].velz/100 * delta;
+            ldropanim[i].sprite.position.y = (num) ldropanim[i].posy + 7*Math.sin((tnow - (num) ldropanim[i].tstartdrop)/MSDURATION_DROP * Math.PI);
+        }
+        else {
+            remove ldropanim[i];
+        }
+    }
+}
+
+action updateHoverAnim(num delta) {
+    for (num i=0; i< lengthOf items; i++) {
+        if ((tnow - (num) items[i].tstartdrop) > MSDURATION_DROP) {
+            (num) items[i].hov += delta;
+            items[i].hov = (num) items[i].hov % HOVSPEED;
+
+            items[i].sprite.position.y = (num) items[i].y + HOVHEIGHT*Math.sin((num) items[i].hov/HOVSPEED* 2*Math.PI);
+        }
+    }
+
+}
+
+action updateItemLib(num delta) {
+    if (lengthOf items > 0) {
+        # Drop animation
+        if (lengthOf ldropanim > 0) {
+            updateDropAnim(delta);
+        }
+        
+        # Hover animation
+        if ((tnow - tLastHov) > T_HOVANIM) {
+            updateHoverAnim(tnow - tLastHov);
+            tLastHov = tnow;
+        }
+
+        # Item pickup
+        checkItemInRange(delta);
+        
+    }
+     # Server Request Item pickup
+    if (((num)myitems[0].cnt < 20) && (lengthOf itempickuplist > 0) && ((tnow - tLastItemRequestPickup) > MS_INTERVAL_ITEMPICKUP)) {
+        requestItemPickup();
+        tLastItemRequestPickup = tnow;
+    }
+}
+
+action renderInventory(){
+    obj size = GAME.OVERLAY.getSize();
+    num xmid = ((num) size.width)/2;
+	num ymid = ((num) size.height)/2;
+
+    for (num i=0;i<lengthOf myitems; i++){
+        GAME.OVERLAY.drawText((str) myitems[i].name + ": " + toStr (num) myitems[i].cnt,(num) size.width*(1)/32, (num) size.height*(8+i)/32, 0, 20, "left", "#FFF000", 1);
+    }
+}
+
+# ===============================================================
+# squid game
+# ===============================================================
+
 
 
 # Runs when the game starts
 bool redlight = false;
 num tdurationlight = 0;
 num clocktime = 0;
+num ticksound = 0;
+num lastTick = 0;
+
 bool inrange = false;
 bool inredgreenroom = true;
 obj[] assetList  = obj[];
 str winner = "";
+
+num tLastwinround = 0;
+num tLastroundstart = 0;
+str gamehappening = "";
+
+bool winround = false;
+bool roundstart = false;
+str winroundmessage = "";
+str newroundmessage = "";
 
 action updateDeathAnim(num tnow, num delta) {
     for (num i=0; i < lengthOf assetList; i++) {
@@ -26,9 +269,9 @@ action updateDeathAnim(num tnow, num delta) {
         if ((tnow - (num)assetList[i].tspawned) > (num)assetList[i].tdurationanim) {
             asset.delete();
             remove  assetList[i];
-        } else if ((tnow - (num)assetList[i].tspawned) < MSDURATION_DROP) {
+        } else if ((tnow - (num)assetList[i].tspawned) < MSDURATION_RAGDOLL) {
             (num) asset.position.x += -1/100 * delta;
-            asset.position.y = (num) assetList[i].ystartpos + 7*Math.sin((tnow - (num) assetList[i].tspawned)/MSDURATION_DROP * Math.PI);
+            asset.position.y = (num) assetList[i].ystartpos + 7*Math.sin((tnow - (num) assetList[i].tspawned)/MSDURATION_RAGDOLL * Math.PI);
         }
     }
 }
@@ -49,34 +292,66 @@ str action timetoStr(num mstime) {
     return minstr + ":" + secstr + "." + toStr ms_remain;
 }
 public action start() {
+    GAME.SCENE.setFog("#8D9AA0",2000);
+    initInventoryLibrary();
+    initDropLibrary();
+
     clocktime = 0;
     winner = "";
+    winround = false;
 
     for (num i=0; i < lengthOf assetList; i++) {
         assetList[i].delete();
         remove assetList[i];
     }
+
+    if (!!music.rate){
+        music.stop();
+    }
+    music = {};
+    fogtnow = 0;
+    fogsettings = {};
 }
 
 
 # Runs every game tick
+bool sendmarbleswin = false;
 public action update(num delta) {
+    tnow = GAME.TIME.now();
+    you = GAME.PLAYERS.getSelf();
+
     if (lengthOf assetList > 0) {
         updateDeathAnim(GAME.TIME.now(), delta);
     }
     if (clocktime > 0) {
         clocktime -= delta;
+        ticksound = Math.ceil(clocktime/1000);
+        if (lastTick != ticksound) {
+            lastTick = ticksound;
+            GAME.SOUND.play2D(31960,1,1,false); # clock ticking
+        }
+        
+    }
+    updateItemLib(delta);
+
+    if ((gamehappening=="marbles") && ((num)myitems[0].cnt >=20) && (!sendmarbleswin)) {
+        GAME.NETWORK.send("winmarbles",{});
+        sendmarbleswin=true;
     }
 
+    if ((fogtnow > 0) && ((tnow - fogtnow) <5000)) {
+        GAME.SCENE.setFog((str)fogsettings.color,(num)fogsettings.distance);
+    }
 }
 
 # Add rendering logic in here
 num height = 0;
+
 public action render(num delta) {
     obj size = GAME.OVERLAY.getSize();
     if ((num) size.height != height) {
         height = (num) size.height;
-        GAME.log(toStr height);
+        # GAME.log(toStr height);
     }
     
 	num xmid = ((num) size.width)/2;
@@ -85,11 +360,34 @@ public action render(num delta) {
     
     if (inrange) {
         if (redlight)     {
-            GAME.OVERLAY.drawText("RED LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#FF0000", 1);
+            # GAME.OVERLAY.drawText("RED LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#FF0000", 1);
+            GAME.OVERLAY.drawImage(31982,(num) size.width*2/32, (num) size.height*1/4, 351,259,0,1);
+            
+            
         } else {
-            GAME.OVERLAY.drawText("GREEN LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#00FF00", 1);
+            # GAME.OVERLAY.drawText("GREEN LIGHT", (num) size.width*1/32, (num) size.height*1/4, 0, 20, "left", "#00FF00", 1);
+            GAME.OVERLAY.drawImage(31983,(num) size.width*2/32, (num) size.height*1/4, 351,259,0,1);
         }
     }
+
+    if (gamehappening == "marbles") {
+        renderInventory();
+    }
+
+    if (winround && (tnow - tLastwinround < MS_DURATION_WINROUNDMSG)) {
+        # GAME.OVERLAY.drawText(winroundmessage, xmid,ymid*2/4, 0, 32*(num)size.height / 1080, "center", "#00FF00", 1);
+        GAME.OVERLAY.drawImage(31986,(num) xmid, ymid*2/4, 512,266,0,1);
+        if ((tnow - tLastwinround) > MS_DURATION_WINROUNDMSG) {
+            winround = false;
+        }
+    }
+
+    # if (roundstart && (tnow - tLastroundstart < MS_DURATION_ROUNDSTARTMSG)) {
+    #     GAME.OVERLAY.drawText(newroundmessage, xmid,ymid*1/4, 0, 32*(num)size.height / 1080, "center", "#FFFF00", 1);
+    #     if ((tnow - tLastroundstart) > MS_DURATION_ROUNDSTARTMSG) {
+    #         roundstart = false;
+    #     }
+    # }
 
     # timer
     GAME.OVERLAY.drawRect((num)size.width*7/16, (num) size.height*1/32, (num)size.width/8,(num)size.height/16, "left", "#000000", 0.3);
@@ -97,15 +395,15 @@ public action render(num delta) {
     
     # winner display message
     if (!!winner) {
-        GAME.OVERLAY.drawRect((num) size.width*5/16, (num) size.height*5/16, (num)size.width*3/8,(num)size.height*5/16, "left", "#000000", 0.3);
-        GAME.OVERLAY.drawText("WINNER: ", xmid, (num) size.height*7/16, 0, 72*(num)size.height/1080*(num)size.width/1920, "center", "#FFFFFF", 1);
-        GAME.OVERLAY.drawText(winner, xmid, (num) size.height*9/16, 0, 100*(num)size.height/1080*(num)size.width/1920, "center", "#e9417f", 1);
+        GAME.OVERLAY.drawRect((num) size.width*5/16, (num) size.height*9/16, (num)size.width*3/8,(num)size.height*5/16, "left", "#000000", 0.3);
+        GAME.OVERLAY.drawText("WINNER: ", xmid, (num) size.height*11/16, 0, 68*(num)size.height/1080*(num)size.width/1920, "center", "#FFFFFF", 1);
+        GAME.OVERLAY.drawText(winner, xmid, (num) size.height*13/16, 0, 80*(num)size.height/1080*(num)size.width/1920, "center", "#e9417f", 1);
     }
 }
 
 # Player spawns in
 public action onPlayerSpawn(str id) {
-
+    GAME.NETWORK.send("playerSpawned",{ID:id});
 }
 
 # Player update
@@ -154,6 +452,7 @@ public action onNetworkMessage(str id, obj data) {
     if ((id == "lightstatus") && (inredgreenroom == true)) {
         redlight = (bool) data.redlight;
         tdurationlight = (num) data.tdurationlight;
+        GAME.log("in lightstatus case");
         if (!redlight) {
             obj sound = GAME.SOUND.play2D(31321,1,((MS_DURATION_SONG+100)/tdurationlight),false); # hardcoded singing to 3seconds
         } else{
@@ -181,5 +480,35 @@ public action onNetworkMessage(str id, obj data) {
     } else if (id == "winner") { 
         winner = (str) data.winner;
         GAME.SOUND.play2D(31410,1,1,false); # winning sound
-    }
+    } else if (id == "winround") {
+        winroundmessage = (str)data.text;
+        winround = true;
+        tLastwinround = tnow;
+        GAME.SOUND.play2D(31410,1,1,false); # winning sound
+    } else if (id == "gamehappening") {
+        gamehappening = (str)data.gamehappening;
+        newroundmessage = (str) data.text;
+        roundstart = true;
+        tLastroundstart = tnow;
+
+        if (!!music.rate) {
+            music.stop();
+        }
+        # music
+        if (gamehappening == "honeycomb") {
+            music = GAME.SOUND.play2D(32010,0.7,1,false); # dalgona music
+        } else 
+        if (gamehappening == "squidgame") {
+            music = GAME.SOUND.play2D(32011,0.7,1,false); # drums music
+        }
+        
+
+
+    } else if (id == "fog") {
+        GAME.SCENE.setFog((str)data.color,(num)data.distance);
+        fogsettings = {color:(str)data.color,distance:(num)data.distance};
+        fogtnow = tnow;
+
+    } else if (networkMessageDrop(id,data)) {}
+    else if (networkMessagePickup(id,data)) {}
 }
