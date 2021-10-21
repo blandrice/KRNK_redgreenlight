@@ -93,6 +93,7 @@ num MS_DURATION_ROUNDSTARTMSG = 5000;
 ## V2.0.1 - Fixes
 - you can still pick up marbles when carrying > 20
 - win applause sound only for last stage
+- fix drop broadcast overflow (not reset everyround)
 
 ## V2.0 - First Map Release
 - Marbles Game
