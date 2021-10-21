@@ -223,7 +223,7 @@ action updateItemLib(num delta) {
 		tLastItemClear = tnow;
     }
     if ((tnow - tLastItemDropBroadcast) > MS_INTERVAL_DROPBROADCAST) {
-        GAME.log("# items: " + toStr lengthOf dropItems);
+        # GAME.log("# items: " + toStr lengthOf dropItems);
     }
     if ((lengthOf dropItems > 0) &&((tnow - tLastItemDropBroadcast) > MS_INTERVAL_DROPBROADCAST)) {
         broadcastItemDrops();
@@ -779,7 +779,7 @@ public action onCustomTrigger(str playerID, str customParam) {
     } else if (customParam == "addWinner") {
         addWinner(playerID);
     } else if (customParam == "gamehappening") {
-        gamehappening = "squidgame";
+        gamehappening = "marbles";
     }
 }
 

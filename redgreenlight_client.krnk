@@ -220,7 +220,7 @@ action updateItemLib(num delta) {
         
     }
      # Server Request Item pickup
-    if (((num)myitems[0].cnt < 20) && (lengthOf itempickuplist > 0) && ((tnow - tLastItemRequestPickup) > MS_INTERVAL_ITEMPICKUP)) {
+    if ((lengthOf itempickuplist > 0) && ((tnow - tLastItemRequestPickup) > MS_INTERVAL_ITEMPICKUP)) {
         requestItemPickup();
         tLastItemRequestPickup = tnow;
     }
@@ -263,6 +263,8 @@ bool roundstart = false;
 str winroundmessage = "";
 str newroundmessage = "";
 
+bool sendmarbleswin = false;
+
 action updateDeathAnim(num tnow, num delta) {
     for (num i=0; i < lengthOf assetList; i++) {
         obj asset = (obj) assetList[i].asset;
@@ -291,11 +293,13 @@ str action timetoStr(num mstime) {
 
     return minstr + ":" + secstr + "." + toStr ms_remain;
 }
+
 public action start() {
     GAME.SCENE.setFog("#8D9AA0",2000);
     initInventoryLibrary();
     initDropLibrary();
 
+    sendmarbleswin=false;
     clocktime = 0;
     winner = "";
     winround = false;
@@ -315,7 +319,7 @@ public action start() {
 
 
 # Runs every game tick
-bool sendmarbleswin = false;
+
 public action update(num delta) {
     tnow = GAME.TIME.now();
     you = GAME.PLAYERS.getSelf();
@@ -484,7 +488,14 @@ public action onNetworkMessage(str id, obj data) {
         winroundmessage = (str)data.text;
         winround = true;
         tLastwinround = tnow;
-        GAME.SOUND.play2D(31410,1,1,false); # winning sound
+        if (gamehappening == "win" || gamehappening == "squidgame") {
+            GAME.SOUND.play2D(31410,1,1,false); # winning sound
+            # GAME.log("applause");
+        } else {
+            GAME.SOUND.play2D(32058,1,1,false); # winning sound
+            # GAME.log("win, no applause");
+        }
+        
     } else if (id == "gamehappening") {
         gamehappening = (str)data.gamehappening;
         newroundmessage = (str) data.text;
@@ -501,8 +512,6 @@ public action onNetworkMessage(str id, obj data) {
         if (gamehappening == "squidgame") {
             music = GAME.SOUND.play2D(32011,0.7,1,false); # drums music
         }
-        
-
 
     } else if (id == "fog") {
         GAME.SCENE.setFog((str)data.color,(num)data.distance);

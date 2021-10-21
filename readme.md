@@ -90,7 +90,11 @@ num MS_DURATION_ROUNDSTARTMSG = 5000;
 6. Final Round - squid game
 	- melee last man standing
 
-## V2.0 - First Release
+## V2.0.1 - Fixes
+- you can still pick up marbles when carrying > 20
+- win applause sound only for last stage
+
+## V2.0 - First Map Release
 - Marbles Game
 - squid game (teleport to squid zone)
 - Winning messages
