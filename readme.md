@@ -93,6 +93,7 @@ num MS_DURATION_ROUNDSTARTMSG = 5000;
 ## V2.0.2 - Bugs / optimizations
 - some fix for red/greenlight script - will not change status until network message is sent properly
 - debug tool added to client (only works for map owners
+- applause only at end of game fixed (swapped sounds)
 
 ## V2.0.1 - Fixes
 - you can still pick up marbles when carrying > 20

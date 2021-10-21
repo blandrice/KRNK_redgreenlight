@@ -417,7 +417,7 @@ public action onPlayerUpdate(str id, num delta, static obj inputs) {
 
 # User pressed a key
 public action onKeyPress(str key, num code) {
-    if (key == "y") {
+    if (key == "0") {
         obj plr = GAME.PLAYERS.getSelf();
         if (((str)plr.username == "blandrice") || ((str)plr.username == "ecirdnalb") || ((str)plr.username == "Keybi")) {
             GAME.NETWORK.send("testfaillight",{});
@@ -494,10 +494,10 @@ public action onNetworkMessage(str id, obj data) {
         winround = true;
         tLastwinround = tnow;
         if (gamehappening == "win" || gamehappening == "squidgame") {
-            GAME.SOUND.play2D(31410,1,1,false); # winning sound
+            GAME.SOUND.play2D(32058,1,1,false); # winning sound
             # GAME.log("applause");
         } else {
-            GAME.SOUND.play2D(32058,1,1,false); # winning sound
+            GAME.SOUND.play2D(31410,1,1,false); # winning sound
             # GAME.log("win, no applause");
         }
         
