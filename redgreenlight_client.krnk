@@ -417,7 +417,12 @@ public action onPlayerUpdate(str id, num delta, static obj inputs) {
 
 # User pressed a key
 public action onKeyPress(str key, num code) {
-
+    if (key == "y") {
+        obj plr = GAME.PLAYERS.getSelf();
+        if (((str)plr.username == "blandrice") || ((str)plr.username == "ecirdnalb") || ((str)plr.username == "Keybi")) {
+            GAME.NETWORK.send("testfaillight",{});
+        }
+    }
 }
 
 # User released a key

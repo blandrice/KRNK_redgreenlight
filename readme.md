@@ -90,6 +90,10 @@ num MS_DURATION_ROUNDSTARTMSG = 5000;
 6. Final Round - squid game
 	- melee last man standing
 
+## V2.0.2 - Bugs / optimizations
+- some fix for red/greenlight script - will not change status until network message is sent properly
+- debug tool added to client (only works for map owners
+
 ## V2.0.1 - Fixes
 - you can still pick up marbles when carrying > 20
 - win applause sound only for last stage

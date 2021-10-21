@@ -3,6 +3,8 @@
 # 
 # Add custom actions here
 
+# debug
+bool testfaillight = false;
 # ======================================================
 # HOST KNOBS
 
@@ -13,7 +15,7 @@ num MS_CLOCKTIMER_LIGHT = 60000;
 num MS_INTERVAL_CLOCKSYNC = 5000;
 
 num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
-num MS_FIRERATE = 1000; # how fast to shoot
+num MS_FIRERATE = 200; # how fast to shoot
 num MS_RELAXEDSHOOT = 500; # some buffer for red light to show before shooting
 num GUNDAMAGE = 200; # how much damage per shot
 
@@ -472,9 +474,9 @@ str action findNearestPlayer(obj pos, str[] markedList, obj[] plrList){
 }
 
 
-action changeLight() {
-    tlastlight = tnow;
-    # GAME.log("changing light");
+bool action changeLight() {
+    
+    # get doll
     if (!doll.displayName) {
         ais = GAME.AI.list();
         obj[] dolls = findAIbyName(ais, " ");
@@ -486,18 +488,32 @@ action changeLight() {
         }
         
     }
-    if (redlight) { # redlight
-        if (!!doll.displayName){
-            doll.playAnim("Back");    
-        }
+
+    # light duration 
+    if (redlight) {
         tdurationlight = UTILS.randInt(MS_MINREDLIGHT,MS_MAXREDLIGHT);
-    } else { # greenlight
-        if (!!doll.displayName){
-            doll.playAnim("Front"); # play anim
-        }
+    } else {
         tdurationlight = UTILS.randInt(MS_MINGREENLIGHT,MS_MAXGREENLIGHT);
     }
-    GAME.NETWORK.broadcast("lightstatus",{redlight:redlight, tdurationlight:tdurationlight});
+
+    if ((testfaillight) || (!GAME.NETWORK.broadcast("lightstatus",{redlight:redlight, tdurationlight:tdurationlight}))) {
+        GAME.log("ERROR: LIGHTSTATUS NOT SENT");
+        return false;
+    } 
+    
+    # play animation
+    else {
+        if (redlight) { # redlight
+            if (!!doll.displayName){
+                doll.playAnim("Back");    
+            }
+        } else { # greenlight
+            if (!!doll.displayName){
+                doll.playAnim("Front"); # play anim
+            }
+        }
+    }
+    return true;
 }
 
 action initLightGame() {
@@ -510,9 +526,15 @@ action initLightGame() {
 }
 
 action updateLightGame(num tnow) {
+    
     if (((tnow - tlastlight) > tdurationlight) && (lengthOf markedList == 0)) {
         redlight = redlight ? false : true;
-        changeLight();
+        if (!changeLight()){ # light wasn't broadcasted successfully
+            redlight = redlight ? false : true; # reset light status
+            return; # exit
+        } else {
+            tlastlight = tnow;
+        }
     }
 
     obj[] plrList = playersinaction();
@@ -525,12 +547,8 @@ action updateLightGame(num tnow) {
             obj player = GAME.PLAYERS.findByID(plrid);
             player.health = (num) player.health - GUNDAMAGE;
             tLastDamage = tnow;    
+            tlastlight = tnow;    
             GAME.NETWORK.broadcast("shoot",{});
-            # obj[] soldiers = findAIbyName(ais, "soldier");
-            # for (num i = 0; i < lengthOf soldiers; i++) {
-            #     obj soldier = (obj) soldiers[i];
-            #     soldier.playAnim("Shoot");
-            # }
             if ((num) player.health <= 0) { # player dead, remove mark
                 removeMark((str)player.username);
                 GAME.NETWORK.broadcast("dead", {player:plrid, x:player.position.x, y:player.position.y, z:player.position.z});
@@ -801,12 +819,15 @@ action addtoAlivePlayerIDList(str ID) {
 
 # Server receives network message
 public action onNetworkMessage(str id, obj data, str playerID) {
-    GAME.log("network message: " +  id);
+    # GAME.log("network message: " +  id);
     if((id=="winmarbles") && (gamehappening == "marbles")) {
         addWinner(playerID);
     } else if (networkMessageItemLib(id, data, playerID)) {}
     else if (id == "playerSpawned") {
         addtoAlivePlayerIDList((str)data.ID);
+    } else if (id == "testfaillight") {
+        testfaillight = testfaillight ? false : true;
+        GAME.log("Testing light: " + toStr testfaillight);
     }
 
 }
