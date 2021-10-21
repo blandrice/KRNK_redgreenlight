@@ -10,7 +10,6 @@
 num MS_MINREDLIGHT = 2000;     num MS_MAXREDLIGHT = 2000;
 num MS_MINGREENLIGHT = 2000;   num MS_MAXGREENLIGHT = 3000;
 num MS_CLOCKTIMER_LIGHT = 60000; 
-# num MS_CLOCKTIMER_LIGHT = 5000; 
 num MS_INTERVAL_CLOCKSYNC = 5000;
 
 num VEL_NOTMOVING = 0.01; # how fast can a player move before we start shooting it (pixels/ms)
@@ -46,11 +45,8 @@ num CHANCE_STARTDROP = 1;
 # Stage 4: Bridge 
 obj[] bridgestart = obj[ # randomly teleports to one of the positions below
     {x: -488.86, y: 244, z: 2343} # position 1
-    # {x: -1796, y: 1011, z: 2280} # position 1
 ];
 num MS_CLOCKTIMER_BRIDGE = 60000;
-# str CLR_BRIDGEFOG = "#8D9AA0"; num DIST_FOG = 200;
-# str CLR_OG_BRIDGEFOG = "#8D9AA0"; num DIST_OG_FOG = 2000;
 
 # Stage 5: squid game
 obj[] squidstart = obj[ # randomly teleports to one of the positions below
@@ -63,13 +59,10 @@ obj[] squidstart = obj[ # randomly teleports to one of the positions below
 ];
 num MS_CLOCKTIMER_SQUID = 60000;
 
-
-# Win area
+# Stage END: Win area
 obj[] win_area = obj[ # randomly teleports to one of the positions below
     {x: -568, y: 86, z: -94} # position 1
 ];
-
-
 # ======================================================
 
 num tnow = 0;
