@@ -36,9 +36,9 @@ obj[] marblestart = obj[ # randomly teleports to one of the positions below
 num MS_CLOCKTIMER_MARBLES = 60000;
 # num MS_INTERVALMARBLEDROP = 3000;
 num MS_INTERVALMARBLEDROP = 1000;
-num NUM_DROPS = 8;
+num NUM_DROPS = 6;
 num CHANCE_DROP = 0.2;
-num CHANCEBOOST_MAX = 0.8;
+num CHANCEBOOST_MAX = 0.7;
 num MAXLOBBYSIZE = 40;
 num MAX_ITEMS_INGAME = 40;
 
