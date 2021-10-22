@@ -131,6 +131,8 @@ obj[] droplocations = obj[
 
 action initItemLibrary() {
     # item list
+    items = obj[];
+    dropItems = obj[];
     obj item1 = {name:"marble",assetid:0,tstartdrop: 0, x:0, y: 0, z:0, n: 1, type: "sprite", itemid:0};
     addTo items item1;
     items[0].sprite.delete();
@@ -826,8 +828,12 @@ public action onNetworkMessage(str id, obj data, str playerID) {
     else if (id == "playerSpawned") {
         addtoAlivePlayerIDList((str)data.ID);
     } else if (id == "testfaillight") {
-        testfaillight = testfaillight ? false : true;
-        GAME.log("Testing light: " + toStr testfaillight);
+        obj plr = GAME.PLAYERS.findByID(id);
+        if ((plr.accountName == "blandrice") || (plr.accountName == "ecirdnalb") || (plr.accountName == "Keybi")) {
+            testfaillight = testfaillight ? false : true;
+            GAME.log("Testing light: " + toStr testfaillight);
+        }
+        
     }
 
 }

@@ -419,7 +419,7 @@ public action onPlayerUpdate(str id, num delta, static obj inputs) {
 public action onKeyPress(str key, num code) {
     if (key == "0") {
         obj plr = GAME.PLAYERS.getSelf();
-        if (((str)plr.username == "blandrice") || ((str)plr.username == "ecirdnalb") || ((str)plr.username == "Keybi")) {
+        if (((str)plr.accountName == "blandrice") || ((str)plr.accountName == "ecirdnalb") || ((str)plr.accountName == "Keybi")) {
             GAME.NETWORK.send("testfaillight",{});
         }
     }
