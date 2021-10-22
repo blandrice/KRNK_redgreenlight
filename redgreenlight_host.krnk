@@ -821,20 +821,24 @@ action addtoAlivePlayerIDList(str ID) {
 
 # Server receives network message
 public action onNetworkMessage(str id, obj data, str playerID) {
-    # GAME.log("network message: " +  id);
+    GAME.log("network message: " +  id);
     if((id=="winmarbles") && (gamehappening == "marbles")) {
         addWinner(playerID);
     } else if (networkMessageItemLib(id, data, playerID)) {}
     else if (id == "playerSpawned") {
         addtoAlivePlayerIDList((str)data.ID);
-    } else if (id == "testfaillight") {
-        obj plr = GAME.PLAYERS.findByID(id);
-        if ((plr.accountName == "blandrice") || (plr.accountName == "ecirdnalb") || (plr.accountName == "Keybi")) {
-            testfaillight = testfaillight ? false : true;
-            GAME.log("Testing light: " + toStr testfaillight);
-        }
+    } 
+    # else if (id == "testfaillight") {
+    #     obj plr = GAME.PLAYERS.findByID(id);
+
+    #     if (((str)plr.accountname == "blandrice") || ((str)plr.accountname == "ecirdnalb") || ((str)plr.accountname == "Keybi")) {
+    #         testfaillight = testfaillight ? false : true;
+    #         GAME.log("Testing light: " + toStr testfaillight);
+    #     } else {
+    #         GAME.log("wrong account name" + (str)plr.accountname);
+    #     }
         
-    }
+    # }
 
 }
 

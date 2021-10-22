@@ -417,12 +417,12 @@ public action onPlayerUpdate(str id, num delta, static obj inputs) {
 
 # User pressed a key
 public action onKeyPress(str key, num code) {
-    if (key == "0") {
-        obj plr = GAME.PLAYERS.getSelf();
-        if (((str)plr.accountName == "blandrice") || ((str)plr.accountName == "ecirdnalb") || ((str)plr.accountName == "Keybi")) {
-            GAME.NETWORK.send("testfaillight",{});
-        }
-    }
+    # if (key == "0") {
+    #     # obj plr = GAME.PLAYERS.getSelf();
+    #     # if (((str)plr.accountname == "blandrice") || ((str)plr.accountname == "ecirdnalb") || ((str)plr.accountname == "Keybi")) {
+    #         GAME.NETWORK.send("testfaillight",{});
+    #     # }
+    # }
 }
 
 # User released a key
