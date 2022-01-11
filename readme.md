@@ -72,24 +72,6 @@ num MS_DURATION_ROUNDSTARTMSG = 5000;
 # ======================================================
 ```
 
-# Road Map
-1. Red/Green light (additional features)
-	- 🤖 robot head will PAUSE AND POINT LASER 😱 if it detects movement, & wait to DETECT MORE MOVEMENT 😣 before shooting
-	- bullets will 🗡️PIERCE players and damage others behind them (requires raycasting (WIP) from KS, or my already made custom collision code 😏)
-	- players can 😈 HIDE behind other players and continue moving (also requires raycasting (WIP) from KS, or my already made custom collision code 😏)
-2. Honeycomb stage
-	- parkour stage (randomly dropped into cirle, triangle, umbrella...)
-	- timer for death
-3. tug-of-war stage
-	- clicker / left right key tapper in teams 
-4. marbles
-	- collect 20 marbles (spawn randomly)
-5.  glass stepping stones
-	- triggers for stepping (randomized left/right)
-	- turn off/flicker environment lighting halfway through
-6. Final Round - squid game
-	- melee last man standing
-
 ## V2.0.2 - Bugs / optimizations
 - some fix for red/greenlight script - will not change status until network message is sent properly
 - debug tool added to client (only works for map owners
